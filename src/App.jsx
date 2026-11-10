@@ -45,6 +45,16 @@ export default function App() {
   const [showForm, setShowForm] = useState(false);
   const [editingTaskId, setEditingTaskId] = useState(null);
 
+  const [activePage, setActivePage] = useState("Tasks");
+
+  const [calendarMonth, setCalendarMonth] = useState(
+    new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+  );
+
+  const [selectedDate, setSelectedDate] = useState(
+    `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}-${String(new Date().getDate()).padStart(2, "0")}`
+  );
+
   const [form, setForm] = useState({
     title: "",
     subject: "",
@@ -183,6 +193,42 @@ export default function App() {
     Low: "bg-emerald-50 text-emerald-600",
   };
 
+  const calendarYear = calendarMonth.getFullYear();
+  const calendarMonthIndex = calendarMonth.getMonth();
+
+  const firstDayOfMonth = new Date(
+    calendarYear,
+    calendarMonthIndex,
+    1
+  ).getDay();
+
+  const daysInMonth = new Date(
+    calendarYear,
+    calendarMonthIndex + 1,
+    0
+  ).getDate();
+
+  const calendarDays = Array.from(
+    { length: firstDayOfMonth + daysInMonth },
+    (_, index) => {
+      if (index < firstDayOfMonth) return null;
+
+      const day = index - firstDayOfMonth + 1;
+
+      return `${calendarYear}-${String(calendarMonthIndex + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    }
+  );
+
+  const tasksForSelectedDate = tasks.filter(
+    (task) => task.due === selectedDate
+  );
+
+  function changeMonth(amount) {
+    setCalendarMonth(
+      new Date(calendarYear, calendarMonthIndex + amount, 1)
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#f7f8fc] text-[#24243a]">
       {/* Sidebar */}
@@ -198,11 +244,15 @@ export default function App() {
           WORKSPACE
         </small>
 
+ 
         <nav className="grid gap-2">
           {["All", "Pending", "Completed"].map((item, index) => (
             <button
               key={item}
-              onClick={() => setFilter(item)}
+              onClick={() => {
+                setFilter(item);
+                setActivePage("Tasks");
+              }}
               className={`rounded-lg px-3 py-3 text-left text-sm ${
                 filter === item
                   ? "bg-[#f0efff] font-bold text-[#695bdd]"
@@ -220,7 +270,20 @@ export default function App() {
               )}
             </button>
           ))}
+
+          <button
+            onClick={() => setActivePage("Calendar")}
+            className={`rounded-lg px-3 py-3 text-left text-sm ${
+              activePage === "Calendar"
+                ? "bg-[#f0efff] font-bold text-[#695bdd]"
+                : "text-gray-500 hover:bg-gray-50"
+            }`}
+          >
+            <span className="mr-3">▦</span>
+            Calendar
+          </button>
         </nav>
+
 
         <div className="mt-auto rounded-xl border border-[#eeecff] bg-[#f6f5ff] p-4 text-xs">
           <b>✦ A little progress adds up.</b>
@@ -257,8 +320,10 @@ export default function App() {
             })}
           </span>
         </header>
+    {activePage === "Tasks" ? (
+      <>
+    {/* Mobile navigation */}
 
-        {/* Mobile navigation */}
         <nav className="flex gap-2 overflow-x-auto py-4 md:hidden">
           {["All", "Pending", "Completed"].map((item) => (
             <button
@@ -498,6 +563,110 @@ export default function App() {
         <div className="py-6 text-center text-[10px] text-gray-400">
           Made for focused days ✦
         </div>
+        </>
+      ) : (
+        <section className="mt-8 rounded-xl border border-[#eceef4] bg-white p-5 sm:p-7">
+          <div className="mb-6 flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-extrabold">Calendar</h1>
+              <p className="mt-1 text-xs text-gray-400">
+                Keep track of your upcoming deadlines.
+              </p>
+            </div>
+
+            <button
+              onClick={() => setActivePage("Tasks")}
+              className="rounded-lg bg-[#f0efff] px-4 py-2 text-xs font-bold text-[#695bdd]"
+            >
+              Back to tasks
+            </button>
+          </div>
+
+          <div className="mb-5 flex items-center justify-between">
+            <button
+              onClick={() => changeMonth(-1)}
+              className="rounded-lg border px-4 py-2 text-sm hover:bg-gray-50"
+            >
+              ←
+            </button>
+
+            <h2 className="text-lg font-bold">
+              {calendarMonth.toLocaleDateString("en-US", {
+                month: "long",
+                year: "numeric",
+              })}
+            </h2>
+
+            <button
+              onClick={() => changeMonth(1)}
+              className="rounded-lg border px-4 py-2 text-sm hover:bg-gray-50"
+            >
+              →
+            </button>
+          </div>
+
+          <div className="grid grid-cols-7 gap-2 text-center">
+            {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
+              <div key={day} className="py-2 text-xs font-bold text-gray-400">
+                {day}
+              </div>
+            ))}
+
+            {calendarDays.map((date, index) => {
+              const dayTasks = tasks.filter((task) => task.due === date);
+
+              return (
+                <button
+                  key={index}
+                  disabled={!date}
+                  onClick={() => date && setSelectedDate(date)}
+                  className={`min-h-16 rounded-lg p-2 text-sm transition ${
+                    !date
+                      ? "invisible"
+                      : selectedDate === date
+                        ? "bg-[#7668e5] text-white"
+                        : "bg-gray-50 hover:bg-[#f0efff]"
+                  }`}
+                >
+                  {date && (
+                    <>
+                      <span>{Number(date.slice(-2))}</span>
+                      {dayTasks.length > 0 && (
+                        <span className="mt-1 block text-[10px]">
+                          {dayTasks.length} task{dayTasks.length > 1 ? "s" : ""}
+                        </span>
+                      )}
+                    </>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="mt-8 border-t border-gray-100 pt-5">
+            <h3 className="font-bold">Tasks for {selectedDate}</h3>
+
+            {tasksForSelectedDate.length > 0 ? (
+              tasksForSelectedDate.map((task) => (
+                <div
+                  key={task.id}
+                  className="mt-3 flex items-center justify-between rounded-lg bg-gray-50 p-3"
+                >
+                  <div>
+                    <p className="text-sm font-semibold">{task.title}</p>
+                    <p className="mt-1 text-xs text-gray-400">{task.subject}</p>
+                  </div>
+                  <span className="text-xs text-[#7668e5]">{task.priority}</span>
+                </div>
+              ))
+            ) : (
+              <p className="mt-3 text-xs text-gray-400">
+                No tasks scheduled for this date.
+              </p>
+            )}
+          </div>
+        </section>
+      )}
       </main>
 
       {/* Add / Edit task modal */}
