@@ -40,6 +40,7 @@ export default function App() {
   const [filter, setFilter] = useState("All");
   const [search, setSearch] = useState("");
   const [showForm, setShowForm] = useState(false);
+  const [editingTaskId, setEditingTaskId] = useState(null);
   const [form, setForm] = useState({
     title: "",
     subject: "",
@@ -75,10 +76,24 @@ export default function App() {
   }, [tasks, filter, search]);
 
   function addTask(e) {
-    e.preventDefault();
+      e.preventDefault();
 
-    if (!form.title.trim() || !form.subject.trim() || !form.due) return;
+      if (!form.title.trim() || !form.subject.trim() || !form.due) return;
 
+      if (editingTaskId !== null) {
+    setTasks((current) =>
+      current.map((task) =>
+        task.id === editingTaskId
+          ? {
+              ...task,
+              ...form,
+              title: form.title.trim(),
+              subject: form.subject.trim(),
+            }
+          : task
+      )
+    );
+  } else {
     setTasks((current) => [
       {
         ...form,
@@ -89,6 +104,7 @@ export default function App() {
       },
       ...current,
     ]);
+  }
 
     setForm({
       title: "",
@@ -98,7 +114,21 @@ export default function App() {
     });
 
     setShowForm(false);
+    setEditingTaskId(null);
     setFilter("All");
+  }
+
+  function editTask(task) {
+    setEditingTaskId(task.id);
+
+    setForm({
+      title: task.title,
+      subject: task.subject,
+      due: task.due,
+      priority: task.priority,
+    });
+
+    setShowForm(true);
   }
 
   function formatDate(value) {
@@ -360,17 +390,27 @@ export default function App() {
                   {task.priority}
                 </span>
 
-                <button
-                  title="Delete task"
-                  onClick={() =>
-                    setTasks((current) =>
-                      current.filter((item) => item.id !== task.id)
-                    )
-                  }
-                  className="text-xl text-gray-300 transition hover:text-red-400"
-                >
-                  ×
-                </button>
+               <div className="flex items-center gap-2">
+                  <button
+                    title="Edit task"
+                    onClick={() => editTask(task)}
+                    className="text-sm font-semibold text-indigo-400 transition hover:text-indigo-600"
+                  >
+                    Edit
+                  </button>
+
+                  <button
+                    title="Delete task"
+                    onClick={() =>
+                      setTasks((current) =>
+                        current.filter((item) => item.id !== task.id)
+                      )
+                    }
+                    className="text-xl text-gray-300 transition hover:text-red-400"
+                  >
+                    ×
+                  </button>
+                </div>
               </div>
             ))
           ) : (
