@@ -31,7 +31,10 @@ const initialTasks = [
 export default function App() {
   const [tasks, setTasks] = useState(() => {
     try {
-      return JSON.parse(localStorage.getItem("studyflow-tasks")) || initialTasks;
+      return (
+        JSON.parse(localStorage.getItem("studyflow-tasks")) ||
+        initialTasks
+      );
     } catch {
       return initialTasks;
     }
@@ -41,6 +44,7 @@ export default function App() {
   const [search, setSearch] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [editingTaskId, setEditingTaskId] = useState(null);
+
   const [form, setForm] = useState({
     title: "",
     subject: "",
@@ -54,6 +58,7 @@ export default function App() {
 
   const completed = tasks.filter((task) => task.done).length;
   const pending = tasks.length - completed;
+
   const progress = tasks.length
     ? Math.round((completed / tasks.length) * 100)
     : 0;
@@ -75,37 +80,7 @@ export default function App() {
     });
   }, [tasks, filter, search]);
 
-  function addTask(e) {
-      e.preventDefault();
-
-      if (!form.title.trim() || !form.subject.trim() || !form.due) return;
-
-      if (editingTaskId !== null) {
-    setTasks((current) =>
-      current.map((task) =>
-        task.id === editingTaskId
-          ? {
-              ...task,
-              ...form,
-              title: form.title.trim(),
-              subject: form.subject.trim(),
-            }
-          : task
-      )
-    );
-  } else {
-    setTasks((current) => [
-      {
-        ...form,
-        id: Date.now(),
-        title: form.title.trim(),
-        subject: form.subject.trim(),
-        done: false,
-      },
-      ...current,
-    ]);
-  }
-
+  function resetForm() {
     setForm({
       title: "",
       subject: "",
@@ -113,8 +88,48 @@ export default function App() {
       priority: "Medium",
     });
 
-    setShowForm(false);
     setEditingTaskId(null);
+  }
+
+  function addTask(e) {
+    e.preventDefault();
+
+    if (
+      !form.title.trim() ||
+      !form.subject.trim() ||
+      !form.due
+    ) {
+      return;
+    }
+
+    if (editingTaskId !== null) {
+      setTasks((current) =>
+        current.map((task) =>
+          task.id === editingTaskId
+            ? {
+                ...task,
+                ...form,
+                title: form.title.trim(),
+                subject: form.subject.trim(),
+              }
+            : task
+        )
+      );
+    } else {
+      setTasks((current) => [
+        {
+          ...form,
+          id: Date.now(),
+          title: form.title.trim(),
+          subject: form.subject.trim(),
+          done: false,
+        },
+        ...current,
+      ]);
+    }
+
+    resetForm();
+    setShowForm(false);
     setFilter("All");
   }
 
@@ -131,11 +146,35 @@ export default function App() {
     setShowForm(true);
   }
 
+  function deleteTask(id) {
+    setTasks((current) =>
+      current.filter((task) => task.id !== id)
+    );
+  }
+
+  function toggleTask(id) {
+    setTasks((current) =>
+      current.map((task) =>
+        task.id === id
+          ? { ...task, done: !task.done }
+          : task
+      )
+    );
+  }
+
+  function closeForm() {
+    setShowForm(false);
+    resetForm();
+  }
+
   function formatDate(value) {
-    return new Date(`${value}T00:00:00`).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-    });
+    return new Date(`${value}T00:00:00`).toLocaleDateString(
+      "en-US",
+      {
+        month: "short",
+        day: "numeric",
+      }
+    );
   }
 
   const priorityStyles = {
@@ -173,6 +212,7 @@ export default function App() {
               <span className="mr-3">
                 {["▦", "◷", "✓"][index]}
               </span>
+
               {["My tasks", "In progress", "Completed"][index]}
 
               {item === "All" && (
@@ -193,6 +233,7 @@ export default function App() {
           <span className="grid h-9 w-9 place-items-center rounded-full bg-[#e9e6ff] text-[#6558c9]">
             S
           </span>
+
           <div>
             Student workspace
             <small className="mt-1 block font-normal text-gray-400">
@@ -206,8 +247,10 @@ export default function App() {
       <main className="mx-auto max-w-[1500px] px-5 pb-8 md:ml-[245px] md:px-10 lg:px-[5.2%]">
         <header className="flex h-[76px] items-center justify-between border-b border-[#eceef4] text-xs text-gray-400">
           <span>Workspace / My tasks</span>
+
           <span className="rounded-lg border border-[#eceef4] bg-white px-3 py-2">
-            ◷ {new Date().toLocaleDateString("en-US", {
+            ◷{" "}
+            {new Date().toLocaleDateString("en-US", {
               weekday: "long",
               month: "long",
               day: "numeric",
@@ -240,7 +283,8 @@ export default function App() {
             </small>
 
             <h1 className="mt-2 text-3xl font-extrabold tracking-tight">
-              Make today count<span className="text-[#8072e8]">.</span>
+              Make today count
+              <span className="text-[#8072e8]">.</span>
             </h1>
 
             <p className="mt-2 text-xs text-gray-400">
@@ -249,7 +293,10 @@ export default function App() {
           </div>
 
           <button
-            onClick={() => setShowForm(true)}
+            onClick={() => {
+              resetForm();
+              setShowForm(true);
+            }}
             className="rounded-lg bg-[#7668e5] px-5 py-3 text-xs font-bold text-white shadow-lg shadow-purple-100 transition hover:bg-[#6557d5]"
           >
             ＋ Add a task
@@ -259,10 +306,26 @@ export default function App() {
         {/* Statistics */}
         <section className="mb-7 grid grid-cols-2 gap-3 xl:grid-cols-4">
           {[
-            { label: "Total tasks", value: tasks.length, note: "Across all subjects" },
-            { label: "In progress", value: pending, note: "Keep moving forward" },
-            { label: "Completed", value: completed, note: "Tasks you've finished" },
-            { label: "Overall progress", value: `${progress}%`, note: `${completed} of ${tasks.length} tasks` },
+            {
+              label: "Total tasks",
+              value: tasks.length,
+              note: "Across all subjects",
+            },
+            {
+              label: "In progress",
+              value: pending,
+              note: "Keep moving forward",
+            },
+            {
+              label: "Completed",
+              value: completed,
+              note: "Tasks you've finished",
+            },
+            {
+              label: "Overall progress",
+              value: `${progress}%`,
+              note: `${completed} of ${tasks.length} tasks`,
+            },
           ].map((stat) => (
             <article
               key={stat.label}
@@ -342,15 +405,7 @@ export default function App() {
                 className="flex items-center gap-3 border-b border-gray-100 px-3 py-4 sm:gap-4 sm:px-5"
               >
                 <button
-                  onClick={() =>
-                    setTasks((current) =>
-                      current.map((item) =>
-                        item.id === task.id
-                          ? { ...item, done: !item.done }
-                          : item
-                      )
-                    )
-                  }
+                  onClick={() => toggleTask(task.id)}
                   className={`grid h-[18px] w-[18px] shrink-0 place-items-center rounded-md border text-xs text-white ${
                     task.done
                       ? "border-[#7b6de7] bg-[#7b6de7]"
@@ -368,6 +423,7 @@ export default function App() {
                   >
                     {task.title}
                   </b>
+
                   <small className="mt-1 block text-[10px] text-gray-400">
                     {task.subject}
                   </small>
@@ -377,6 +433,7 @@ export default function App() {
                   <small className="block text-[8px] tracking-wider text-gray-400">
                     DUE DATE
                   </small>
+
                   <b className="mt-1 block text-[10px] font-medium text-gray-500">
                     ▣ {formatDate(task.due)}
                   </b>
@@ -390,7 +447,7 @@ export default function App() {
                   {task.priority}
                 </span>
 
-               <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2">
                   <button
                     title="Edit task"
                     onClick={() => editTask(task)}
@@ -401,11 +458,7 @@ export default function App() {
 
                   <button
                     title="Delete task"
-                    onClick={() =>
-                      setTasks((current) =>
-                        current.filter((item) => item.id !== task.id)
-                      )
-                    }
+                    onClick={() => deleteTask(task.id)}
                     className="text-xl text-gray-300 transition hover:text-red-400"
                   >
                     ×
@@ -416,9 +469,11 @@ export default function App() {
           ) : (
             <div className="px-4 py-10 text-center">
               <b className="text-sm">✦ No tasks found</b>
+
               <p className="mt-2 text-xs text-gray-400">
                 Try another search or add a new task.
               </p>
+
               <button
                 onClick={() => {
                   setSearch("");
@@ -435,6 +490,7 @@ export default function App() {
             <span>
               Showing {visibleTasks.length} of {tasks.length} tasks
             </span>
+
             <span>Changes are saved automatically</span>
           </footer>
         </section>
@@ -444,10 +500,10 @@ export default function App() {
         </div>
       </main>
 
-      {/* Add task modal */}
+      {/* Add / Edit task modal */}
       {showForm && (
         <div
-          onClick={() => setShowForm(false)}
+          onClick={closeForm}
           className="fixed inset-0 z-50 grid place-items-center bg-[#22223b]/40 p-5"
         >
           <section
@@ -459,13 +515,16 @@ export default function App() {
                 <small className="text-[9px] font-bold tracking-widest text-[#8174e8]">
                   PLAN YOUR NEXT STEP
                 </small>
+
                 <h2 className="mt-2 text-xl font-extrabold">
-                  Add a new task
+                  {editingTaskId !== null
+                    ? "Edit task"
+                    : "Add a new task"}
                 </h2>
               </div>
 
               <button
-                onClick={() => setShowForm(false)}
+                onClick={closeForm}
                 className="grid h-8 w-8 place-items-center rounded-lg bg-gray-100 text-xl text-gray-500"
               >
                 ×
@@ -475,6 +534,7 @@ export default function App() {
             <form onSubmit={addTask} className="grid gap-4">
               <label className="grid gap-2 text-[11px] font-bold text-gray-600">
                 Task name
+
                 <input
                   autoFocus
                   required
@@ -489,6 +549,7 @@ export default function App() {
 
               <label className="grid gap-2 text-[11px] font-bold text-gray-600">
                 Subject or category
+
                 <input
                   required
                   placeholder="e.g. Mathematics"
@@ -503,6 +564,7 @@ export default function App() {
               <div className="grid grid-cols-2 gap-3">
                 <label className="grid gap-2 text-[11px] font-bold text-gray-600">
                   Due date
+
                   <input
                     type="date"
                     required
@@ -516,6 +578,7 @@ export default function App() {
 
                 <label className="grid gap-2 text-[11px] font-bold text-gray-600">
                   Priority
+
                   <select
                     value={form.priority}
                     onChange={(e) =>
@@ -533,7 +596,7 @@ export default function App() {
               <div className="mt-3 flex justify-end gap-3">
                 <button
                   type="button"
-                  onClick={() => setShowForm(false)}
+                  onClick={closeForm}
                   className="rounded-lg border border-gray-200 px-4 py-3 text-xs text-gray-500"
                 >
                   Cancel
